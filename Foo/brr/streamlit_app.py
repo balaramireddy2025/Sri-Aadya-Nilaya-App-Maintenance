@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Page setup
+# Page config
 st.set_page_config(page_title="Apartment Maintenance Tracker", layout="wide")
 
-# Owners data
+# Owners dictionary
 owners = {
     "Flat G1": "Shiva Shanker",
     "Flat G2": "Ashish R",
@@ -27,10 +27,14 @@ months = [
 current_month = datetime.now().month
 selected_month = st.sidebar.selectbox("📅 Select Month", months, index=current_month - 1)
 
-# Navigation
+# Previous outstanding input in sidebar
+st.sidebar.markdown("---")
+previous_outstanding = st.sidebar.number_input("📌 Previous Outstanding (if any)", value=0, step=100)
+
+# Sidebar navigation
 menu = st.sidebar.radio("🏠 Navigate", ["Dashboard", "Add Payments", "Add Expenses"])
 
-# Shared session state
+# Session State Initialization
 if "payments" not in st.session_state:
     st.session_state.payments = {flat: 1000 for flat in owners}
 if "expenses" not in st.session_state:
@@ -43,18 +47,20 @@ if "expenses" not in st.session_state:
         "Other Expenses": 0
     }
 
-# 1️⃣ Dashboard Screen
+# 1️⃣ Dashboard
 if menu == "Dashboard":
-    st.title("📊 Maintenance Dashboard")
-    st.subheader(f"Month: {selected_month}")
+    st.title("🏢 Maintenance Dashboard")
+    st.subheader(f"📆 Month: {selected_month}")
 
     total_collected = sum(st.session_state.payments.values())
     total_expenses = sum(st.session_state.expenses.values())
-    balance = total_collected - total_expenses
+    balance = total_collected + previous_outstanding - total_expenses
 
-    st.metric("Total Collected", f"₹{total_collected}")
-    st.metric("Total Expenses", f"₹{total_expenses}")
-    st.metric("Remaining Balance", f"₹{balance}")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Collected", f"₹{total_collected}")
+    col2.metric("Previous Outstanding", f"₹{previous_outstanding}")
+    col3.metric("Total Expenses", f"₹{total_expenses}")
+    col4.metric("Remaining Balance", f"₹{balance}")
 
     st.divider()
     st.subheader("🧾 Payment Overview")
@@ -73,22 +79,36 @@ if menu == "Dashboard":
     })
     st.dataframe(df_exp, use_container_width=True)
 
-# 2️⃣ Payments Screen
+# 2️⃣ Add Payments
 elif menu == "Add Payments":
     st.title("💰 Add Maintenance Payments")
-    st.subheader(f"Month: {selected_month}")
-    for flat, name in owners.items():
-        amt = st.number_input(f"{flat} - {name}", min_value=0, step=100,
-                              value=st.session_state.payments.get(flat, 1000), key=flat)
-        st.session_state.payments[flat] = amt
-    st.success("✅ Payments updated!")
+    st.subheader(f"📆 Month: {selected_month}")
 
-# 3️⃣ Expenses Screen
+    for flat, name in owners.items():
+        amt = st.number_input(
+            f"{flat} - {name}",
+            min_value=0,
+            step=100,
+            value=st.session_state.payments.get(flat, 1000),
+            key=f"payment_{flat}"
+        )
+        st.session_state.payments[flat] = amt
+
+    st.success("✅ Payments updated successfully!")
+
+# 3️⃣ Add Expenses
 elif menu == "Add Expenses":
     st.title("📉 Add Monthly Expenses")
-    st.subheader(f"Month: {selected_month}")
-    for exp in st.session_state.expenses:
-        value = st.number_input(exp, min_value=0, step=100,
-                                value=st.session_state.expenses.get(exp), key=exp)
-        st.session_state.expenses[exp] = value
-    st.success("✅ Expenses updated!")
+    st.subheader(f"📆 Month: {selected_month}")
+
+    for expense in st.session_state.expenses.keys():
+        amt = st.number_input(
+            f"{expense}",
+            min_value=0,
+            step=100,
+            value=st.session_state.expenses[expense],
+            key=f"expense_{expense}"
+        )
+        st.session_state.expenses[expense] = amt
+
+    st.success("✅ Expenses updated successfully!")
