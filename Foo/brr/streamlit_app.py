@@ -79,3 +79,16 @@ elif menu == "Add Payments":
     st.subheader(f"Month: {selected_month}")
     for flat, name in owners.items():
         amt = st.number_input(f"{flat} - {name}", min_value=0, step=100,
+                              value=st.session_state.payments.get(flat, 1000), key=flat)
+        st.session_state.payments[flat] = amt
+    st.success("✅ Payments updated!")
+
+# 3️⃣ Expenses Screen
+elif menu == "Add Expenses":
+    st.title("📉 Add Monthly Expenses")
+    st.subheader(f"Month: {selected_month}")
+    for exp in st.session_state.expenses:
+        value = st.number_input(exp, min_value=0, step=100,
+                                value=st.session_state.expenses.get(exp), key=exp)
+        st.session_state.expenses[exp] = value
+    st.success("✅ Expenses updated!")
