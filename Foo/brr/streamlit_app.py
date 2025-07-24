@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
+# Page setup
 st.set_page_config(page_title="Apartment Maintenance Tracker", layout="wide")
 
-# Owner Info
+# Owners data
 owners = {
     "Flat G1": "Shiva Shanker",
     "Flat G2": "Ashish R",
@@ -17,41 +19,63 @@ owners = {
     "Flat 402": "Suresh"
 }
 
-st.title("🏢 Apartment Maintenance Tracker")
+# Month selection
+months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+]
+current_month = datetime.now().month
+selected_month = st.sidebar.selectbox("📅 Select Month", months, index=current_month - 1)
 
-# Section 1: Monthly Collection
-st.header("💰 Monthly Maintenance Collection")
-col1, col2 = st.columns(2)
+# Navigation
+menu = st.sidebar.radio("🏠 Navigate", ["Dashboard", "Add Payments", "Add Expenses"])
 
-amounts = {}
-with col1:
-    for flat, name in owners.items():
-        amt = st.number_input(f"{flat} - {name}", min_value=0, value=1000, step=100, key=flat)
-        amounts[flat] = amt
+# Shared session state
+if "payments" not in st.session_state:
+    st.session_state.payments = {flat: 1000 for flat in owners}
+if "expenses" not in st.session_state:
+    st.session_state.expenses = {
+        "Watchman Salary": 3000,
+        "Power Bill": 1000,
+        "Water Bill": 500,
+        "Plumber Charges": 0,
+        "Lift Maintenance": 0,
+        "Other Expenses": 0
+    }
 
-total_collection = sum(amounts.values())
-st.success(f"✅ Total Collected: ₹{total_collection}")
+# 1️⃣ Dashboard Screen
+if menu == "Dashboard":
+    st.title("📊 Maintenance Dashboard")
+    st.subheader(f"Month: {selected_month}")
 
-# Section 2: Expenses
-st.header("📉 Monthly Expenses")
-watchman = st.number_input("Watchman Salary", min_value=0, value=3000, step=500)
-power = st.number_input("Electricity Bill", min_value=0, value=1000, step=100)
-water = st.number_input("Water Bill", min_value=0, value=500, step=100)
-others = st.number_input("Other Expenses", min_value=0, value=0, step=100)
+    total_collected = sum(st.session_state.payments.values())
+    total_expenses = sum(st.session_state.expenses.values())
+    balance = total_collected - total_expenses
 
-total_expenses = watchman + power + water + others
-st.warning(f"📊 Total Expenses: ₹{total_expenses}")
+    st.metric("Total Collected", f"₹{total_collected}")
+    st.metric("Total Expenses", f"₹{total_expenses}")
+    st.metric("Remaining Balance", f"₹{balance}")
 
-# Section 3: Balance
-balance = total_collection - total_expenses
-st.header("📈 Monthly Summary")
-st.info(f"💼 Balance Leftover: ₹{balance}")
-
-# Optional: Display Data Table
-if st.checkbox("Show Full Payment Table"):
-    df = pd.DataFrame({
+    st.divider()
+    st.subheader("🧾 Payment Overview")
+    df_pay = pd.DataFrame({
         "Flat Number": list(owners.keys()),
         "Resident Name": list(owners.values()),
-        "Amount Paid": list(amounts.values())
+        "Amount Paid (₹)": list(st.session_state.payments.values())
     })
-    st.dataframe(df)
+    st.dataframe(df_pay, use_container_width=True)
+
+    st.divider()
+    st.subheader("📉 Expense Details")
+    df_exp = pd.DataFrame({
+        "Expense": list(st.session_state.expenses.keys()),
+        "Amount (₹)": list(st.session_state.expenses.values())
+    })
+    st.dataframe(df_exp, use_container_width=True)
+
+# 2️⃣ Payments Screen
+elif menu == "Add Payments":
+    st.title("💰 Add Maintenance Payments")
+    st.subheader(f"Month: {selected_month}")
+    for flat, name in owners.items():
+        amt = st.number_input(f"{flat} - {name}", min_value=0, step=100,
