@@ -68,4 +68,52 @@ if selected_tab == "Dashboard":
     balance = total_collected + st.session_state.previous_outstanding - total_expenses
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("💵 Coll
+    col1.metric("💵 Collected", f"₹{total_collected}")
+    col2.metric("📌 Prev. Outstanding", f"₹{st.session_state.previous_outstanding}")
+    col3.metric("📉 Expenses", f"₹{total_expenses}")
+    col4.metric("💼 Balance", f"₹{balance}")
+
+    st.markdown("### 🧾 Maintenance Payments")
+    df_pay = pd.DataFrame({
+        "Flat Number": list(owners.keys()),
+        "Resident Name": list(owners.values()),
+        "Amount Paid (₹)": list(st.session_state.payments.values())
+    })
+    st.dataframe(df_pay, use_container_width=True)
+
+    st.markdown("### 🧮 Expense Breakdown")
+    df_exp = pd.DataFrame({
+        "Expense": list(st.session_state.expenses.keys()),
+        "Amount (₹)": list(st.session_state.expenses.values())
+    })
+    st.dataframe(df_exp, use_container_width=True)
+
+# 2️⃣ Add Payments View
+elif selected_tab == "Payments":
+    st.markdown("Enter amount paid by each flat:")
+    for flat, name in owners.items():
+        value = st.number_input(
+            f"{flat} - {name}",
+            min_value=0,
+            value=st.session_state.payments.get(flat, 1000),
+            step=100,
+            key=f"pay_{flat}"
+        )
+        st.session_state.payments[flat] = value
+
+    st.success("✅ Payments saved successfully!")
+
+# 3️⃣ Add Expenses View
+elif selected_tab == "Expenses":
+    st.markdown("Enter detailed monthly expenses:")
+    for expense_name in st.session_state.expenses:
+        value = st.number_input(
+            expense_name,
+            min_value=0,
+            value=st.session_state.expenses[expense_name],
+            step=100,
+            key=f"exp_{expense_name}"
+        )
+        st.session_state.expenses[expense_name] = value
+
+    st.success("✅ Expenses saved successfully!")
