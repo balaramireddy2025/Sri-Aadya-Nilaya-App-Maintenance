@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from PIL import Image
 
-# Page config
+# ------------------ Page Setup ------------------
 st.set_page_config(page_title="Sri Aadya Maintenance", page_icon="🏠", layout="centered")
 
-# ---------- Data ----------
+# ------------------ Flat Owners ------------------
 owners = {
     "101": "Ramesh",
     "102": "Sita",
@@ -20,6 +19,7 @@ owners = {
     "110": "Pavan"
 }
 
+# ------------------ App State ------------------
 def initialize_state():
     if "payments" not in st.session_state:
         st.session_state.payments = {flat: 1000 for flat in owners}
@@ -34,11 +34,11 @@ def initialize_state():
 
 initialize_state()
 
-# ---------- Sidebar Navigation ----------
+# ------------------ Sidebar ------------------
 menu = ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"]
 choice = st.sidebar.radio("Navigation", menu)
 
-# ---------- Dashboard Screen ----------
+# ------------------ Dashboard Screen ------------------
 if choice == "🏠 Dashboard":
     st.markdown("## 🏠 Sri Aadya\n### Maintenance Dashboard")
 
@@ -46,16 +46,15 @@ if choice == "🏠 Dashboard":
     expenses = sum(st.session_state.expenses.values())
     balance = collected + st.session_state.previous_outstanding - expenses
 
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        col1.metric("🧾 Total Maintenance Collected", f"₹{collected}")
-        col2.metric("💸 Monthly Expenses", f"₹{expenses}")
-        col3.metric("💰 Balance", f"₹{balance}")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🧾 Total Maintenance Collected", f"₹{collected}")
+    col2.metric("💸 Monthly Expenses", f"₹{expenses}")
+    col3.metric("💰 Balance", f"₹{balance}")
 
-    st.markdown("\n---\n")
+    st.markdown("---")
     st.button("➡️ View Flat Details", use_container_width=True)
 
-# ---------- Flat-wise Payment Status Screen ----------
+# ------------------ Flat-wise Payment Status ------------------
 elif choice == "📋 Flat Status":
     st.markdown("## 📋 Flat-wise Payment Status")
     df = pd.DataFrame({
@@ -66,16 +65,24 @@ elif choice == "📋 Flat Status":
     st.table(df)
     st.button("⬅️ Back to Dashboard", use_container_width=True)
 
-# ---------- Monthly Expenses Screen ----------
+# ------------------ Monthly Expenses ------------------
 elif choice == "📊 Expenses":
     st.markdown("## 📊 Monthly Expenses (July 2025)")
     exp = st.session_state.expenses
 
-    col1, col2, col3 = st.columns(1)
-    with col1:
-        st.write("👮 Watchman Salary: ₹", exp["Watchman Salary"])
-        st.write("💡 Electricity Bill: ₹", exp["Electricity Bill"])
-        st.write("🚰 Water Bill: ₹", exp["Water Bill"])
+    col1, col2, col3 = st.columns(3)
 
-    st.success(f"Total Expense: ₹{sum(exp.values())}")
+    with col1:
+        st.write("👮 Watchman Salary")
+        st.metric(label="", value=f"₹{exp['Watchman Salary']}")
+
+    with col2:
+        st.write("💡 Electricity Bill")
+        st.metric(label="", value=f"₹{exp['Electricity Bill']}")
+
+    with col3:
+        st.write("🚰 Water Bill")
+        st.metric(label="", value=f"₹{exp['Water Bill']}")
+
+    st.success(f"💵 Total Expense: ₹{sum(exp.values())}")
     st.button("➕ Add Expense", use_container_width=True)
