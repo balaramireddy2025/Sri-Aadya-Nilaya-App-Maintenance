@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Setup
-st.set_page_config(page_title="Apartment Maintenance Tracker", layout="wide")
+# Page config with custom icon and wide layout
+st.set_page_config(page_title="Sri Aadya Maintenance", page_icon="🏠", layout="wide")
 
 # Flat Owners
 owners = {
@@ -20,77 +20,75 @@ owners = {
 }
 
 # Session State
-if "payments" not in st.session_state:
-    st.session_state.payments = {flat: 1000 for flat in owners}
-if "expenses" not in st.session_state:
-    st.session_state.expenses = {
-        "Watchman Salary": 3000,
-        "Power Bill": 1000,
-        "Water Bill": 500,
-        "Plumber Charges": 0,
-        "Lift Maintenance": 0,
-        "Other Expenses": 0
-    }
-if "previous_outstanding" not in st.session_state:
-    st.session_state.previous_outstanding = 0
+def initialize_state():
+    if "payments" not in st.session_state:
+        st.session_state.payments = {flat: 1000 for flat in owners}
+    if "expenses" not in st.session_state:
+        st.session_state.expenses = {
+            "Watchman Salary": 3000,
+            "Power Bill": 1000,
+            "Water Bill": 500,
+            "Plumber Charges": 0,
+            "Lift Maintenance": 0,
+            "Other Expenses": 0
+        }
+    if "previous_outstanding" not in st.session_state:
+        st.session_state.previous_outstanding = 0
 
-# Sidebar: Month selection + Outstanding
-st.sidebar.markdown("### 📅 Select Month")
-months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-]
-current_month = datetime.now().month
-selected_month = st.sidebar.selectbox("Month", months, index=current_month - 1)
+initialize_state()
 
-st.sidebar.markdown("---")
-st.session_state.previous_outstanding = st.sidebar.number_input(
-    "📌 Previous Outstanding (₹)", value=0, step=100
-)
+# Sidebar - Month and Outstanding
+with st.sidebar:
+    st.markdown("## 🗓️ Select Month")
+    months = ["January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
+    current_month = datetime.now().month
+    selected_month = st.selectbox("Month", months, index=current_month - 1)
 
-# 🧭 Styled Navigation Tabs (instead of radio buttons)
-tabs = {
-    "Dashboard": "📊 Dashboard",
-    "Payments": "💰 Add Payments",
-    "Expenses": "📉 Add Expenses"
-}
-selected_tab = st.selectbox("📍 Navigate to:", list(tabs.keys()), format_func=lambda x: tabs[x])
+    st.markdown("---")
+    st.session_state.previous_outstanding = st.number_input(
+        "📌 Previous Outstanding (₹)", value=0, step=100
+    )
 
-st.markdown(f"## {tabs[selected_tab]}")
-st.markdown(f"#### 🗓️ Month: `{selected_month}`")
+    st.markdown("---")
+    st.markdown("## 📍 Navigation")
+    selected_tab = st.radio("Go to", ["Dashboard", "Flat Payments", "Monthly Expenses"])
 
+st.markdown(f"# 🏠 Sri Aadya Maintenance - {selected_tab}")
+st.markdown(f"### 📅 Month: `{selected_month}`")
 st.markdown("---")
 
-# 1️⃣ Dashboard View
+# ----------------- Dashboard -------------------
 if selected_tab == "Dashboard":
     total_collected = sum(st.session_state.payments.values())
     total_expenses = sum(st.session_state.expenses.values())
     balance = total_collected + st.session_state.previous_outstanding - total_expenses
 
+    st.markdown("### 🔍 Summary")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("💵 Collected", f"₹{total_collected}")
-    col2.metric("📌 Prev. Outstanding", f"₹{st.session_state.previous_outstanding}")
-    col3.metric("📉 Expenses", f"₹{total_expenses}")
-    col4.metric("💼 Balance", f"₹{balance}")
+    col1.metric("💰 Total Collected", f"₹{total_collected}")
+    col2.metric("📌 Previous Outstanding", f"₹{st.session_state.previous_outstanding}")
+    col3.metric("📉 Total Expenses", f"₹{total_expenses}")
+    col4.metric("💼 Remaining Balance", f"₹{balance}")
 
-    st.markdown("### 🧾 Maintenance Payments")
+    st.markdown("### 🧾 Flat-wise Payment Status")
     df_pay = pd.DataFrame({
         "Flat Number": list(owners.keys()),
         "Resident Name": list(owners.values()),
         "Amount Paid (₹)": list(st.session_state.payments.values())
     })
-    st.dataframe(df_pay, use_container_width=True)
+    st.dataframe(df_pay, use_container_width=True, height=300)
 
-    st.markdown("### 🧮 Expense Breakdown")
+    st.markdown("### 📊 Expense Breakdown")
     df_exp = pd.DataFrame({
         "Expense": list(st.session_state.expenses.keys()),
         "Amount (₹)": list(st.session_state.expenses.values())
     })
-    st.dataframe(df_exp, use_container_width=True)
+    st.dataframe(df_exp, use_container_width=True, height=250)
 
-# 2️⃣ Add Payments View
-elif selected_tab == "Payments":
-    st.markdown("Enter amount paid by each flat:")
+# ----------------- Payments -------------------
+elif selected_tab == "Flat Payments":
+    st.markdown("### 💰 Enter Amount Paid by Each Flat")
     for flat, name in owners.items():
         value = st.number_input(
             f"{flat} - {name}",
@@ -100,20 +98,18 @@ elif selected_tab == "Payments":
             key=f"pay_{flat}"
         )
         st.session_state.payments[flat] = value
+    st.success("✅ Payments updated successfully!")
 
-    st.success("✅ Payments saved successfully!")
-
-# 3️⃣ Add Expenses View
-elif selected_tab == "Expenses":
-    st.markdown("Enter detailed monthly expenses:")
-    for expense_name in st.session_state.expenses:
+# ----------------- Expenses -------------------
+elif selected_tab == "Monthly Expenses":
+    st.markdown("### 🧾 Enter Monthly Expenses")
+    for expense in st.session_state.expenses:
         value = st.number_input(
-            expense_name,
+            f"{expense}",
             min_value=0,
-            value=st.session_state.expenses[expense_name],
+            value=st.session_state.expenses[expense],
             step=100,
-            key=f"exp_{expense_name}"
+            key=f"exp_{expense}"
         )
-        st.session_state.expenses[expense_name] = value
-
-    st.success("✅ Expenses saved successfully!")
+        st.session_state.expenses[expense] = value
+    st.success("✅ Expenses updated successfully!")
