@@ -1,5 +1,4 @@
 import streamlit as st
-from datetime import datetime
 from collections import defaultdict
 
 # Static flat data
@@ -32,15 +31,6 @@ def get_total_expenses(month):
 def get_balance(month):
     return get_total_collected() - get_total_expenses(month)
 
-def get_yearly_totals(year):
-    total_collected = 0
-    total_expenses = 0
-    for month in range(1, 13):
-        ym = f"{year}-{month:02}"
-        total_collected += get_total_collected()
-        total_expenses += get_total_expenses(ym)
-    return total_collected, total_expenses
-
 # Sidebar Navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(" ", ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"])
@@ -50,7 +40,7 @@ selected_month = st.sidebar.selectbox("Select Month", [f"{y}-{m:02}" for y in ra
 # Dashboard
 if page == "🏠 Dashboard":
     st.title("🏠 Sri Aadya Maintenance Dashboard")
-    
+
     total_collected = get_total_collected()
     total_expenses = get_total_expenses(selected_month)
     balance = get_balance(selected_month)
@@ -63,17 +53,6 @@ if page == "🏠 Dashboard":
     st.divider()
     st.subheader(f"🔄 Summary for {selected_month}")
     st.write("Collection and expense summary for the selected month.")
-
-    # Yearly Summary
-    year = selected_month.split("-")[0]
-    st.divider()
-    st.subheader(f"📆 Yearly Summary ({year})")
-    year_collected, year_expenses = get_yearly_totals(year)
-    year_balance = year_collected - year_expenses
-
-    st.write(f"✅ **Total Collected**: ₹{year_collected}")
-    st.write(f"💸 **Total Expenses**: ₹{year_expenses}")
-    st.write(f"📘 **Remaining Balance**: ₹{year_balance}")
 
 # Flat Status Page
 elif page == "📋 Flat Status":
