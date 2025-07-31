@@ -7,22 +7,22 @@ st.set_page_config(page_title="Sri Aadya Maintenance", page_icon="🏠", layout=
 
 # ------------------ Flat Owners ------------------
 owners = {
-    "101": "Ramesh",
-    "102": "Sita",
-    "103": "Lakshmi",
-    "104": "Rajesh",
-    "105": "Meena",
-    "106": "Arjun",
-    "107": "Suresh",
-    "108": "Kalaiselvi",
-    "109": "Girish",
-    "110": "Pavan"
+    "G1": "Siva Shankar",
+    "G2": "Ashish R",
+    "101": "Girish Babu C",
+    "102": "Bala Krishnan",
+    "201": "Srinivas",
+    "202": "Kalaiselvi M",
+    "301": "Girish V",
+    "302": "Balarami Reddy",
+    "401": "Pavan",
+    "402": "Suresh"
 }
 
 # ------------------ App State ------------------
 def initialize_state():
     if "payments" not in st.session_state:
-        st.session_state.payments = {flat: 1000 for flat in owners}
+        st.session_state.payments = {flat: 3000 for flat in owners}
     if "expenses" not in st.session_state:
         st.session_state.expenses = {
             "Watchman Salary": 4000,
