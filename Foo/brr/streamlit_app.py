@@ -1,14 +1,9 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 # ------------------ Page Setup ------------------
 st.set_page_config(page_title="Sri Aadya Maintenance", page_icon="🏠", layout="centered")
-
-# ------------------ Logo and Title ------------------
-st.image("https://cdn-icons-png.flaticon.com/512/809/809957.png", width=80)  # Optional logo, replace with your image
-st.markdown("<h1 style='text-align: center; color: #4A90E2;'>Sri Aadya Apartments</h1>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: center; color: gray;'>Monthly Maintenance Tracker</h4>", unsafe_allow_html=True)
-st.markdown("---")
 
 # ------------------ Flat Owners ------------------
 owners = {
@@ -26,73 +21,82 @@ owners = {
 
 # ------------------ App State ------------------
 def initialize_state():
-    if "payments" not in st.session_state:
-        st.session_state.payments = {flat: 3000 for flat in owners}  # ₹300 per flat
-    if "expenses" not in st.session_state:
-        st.session_state.expenses = {
-            "Watchman Salary": 4000,
-            "Electricity Bill": 1500,
-            "Water Bill": 1000
+    if "monthly_data" not in st.session_state:
+        # Sample data for 2 months: July and August 2025
+        st.session_state.monthly_data = {
+            "July 2025": {
+                "payments": {flat: 300 for flat in owners},
+                "expenses": {
+                    "Watchman Salary": 4000,
+                    "Electricity Bill": 1500,
+                    "Water Bill": 1000
+                }
+            },
+            "August 2025": {
+                "payments": {flat: 300 for flat in owners},
+                "expenses": {
+                    "Watchman Salary": 4000,
+                    "Electricity Bill": 1600,
+                    "Water Bill": 1200
+                }
+            }
         }
-    if "previous_outstanding" not in st.session_state:
-        st.session_state.previous_outstanding = 0
 
 initialize_state()
 
 # ------------------ Sidebar ------------------
 st.sidebar.title("📌 Menu")
-menu = ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"]
+menu = ["🏠 Monthly Summary", "📋 Flat Collection", "📊 Expense Details"]
 choice = st.sidebar.radio("Navigate", menu)
 
-# ------------------ Dashboard ------------------
-if choice == "🏠 Dashboard":
-    st.markdown("### 📊 Monthly Summary")
+# ------------------ Select Month ------------------
+months = list(st.session_state.monthly_data.keys())
+selected_month = st.sidebar.selectbox("📅 Select Month", months)
 
-    collected = sum(st.session_state.payments.values())
-    expenses = sum(st.session_state.expenses.values())
-    balance = collected + st.session_state.previous_outstanding - expenses
+# Get data for selected month
+month_data = st.session_state.monthly_data[selected_month]
+payments = month_data["payments"]
+expenses = month_data["expenses"]
+
+# ------------------ Dashboard ------------------
+if choice == "🏠 Monthly Summary":
+    st.markdown(f"### 📊 Summary – {selected_month}")
+
+    total_collected = sum(payments.values())
+    total_expenses = sum(expenses.values())
+    balance = total_collected - total_expenses
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("🧾 Collected", f"₹{collected}")
-    col2.metric("💸 Expenses", f"₹{expenses}")
+    col1.metric("🧾 Collected", f"₹{total_collected}")
+    col2.metric("💸 Expenses", f"₹{total_expenses}")
     col3.metric("💰 Balance", f"₹{balance}")
 
     st.markdown("---")
-    st.markdown("🔄 Use the sidebar to view flat-wise status or monthly expenses.")
+    st.markdown("✔ Use the sidebar to view flat-wise collection or full expense breakdown.")
 
-# ------------------ Flat Status ------------------
-elif choice == "📋 Flat Status":
-    st.markdown("### 📋 Flat-wise Payment Status")
+# ------------------ Flat Collection ------------------
+elif choice == "📋 Flat Collection":
+    st.markdown(f"### 📋 Flat-wise Payment – {selected_month}")
 
     df = pd.DataFrame({
         "Flat Number": list(owners.keys()),
         "Resident Name": list(owners.values()),
-        "Paid Amount (₹)": list(st.session_state.payments.values())
+        "Paid Amount (₹)": list(payments.values())
     })
 
     st.dataframe(df, use_container_width=True)
 
-# ------------------ Expenses ------------------
-elif choice == "📊 Expenses":
-    st.markdown("### 💼 Monthly Expenses – July 2025")
+# ------------------ Expense Details ------------------
+elif choice == "📊 Expense Details":
+    st.markdown(f"### 💼 Expenses – {selected_month}")
 
-    exp = st.session_state.expenses
     col1, col2, col3 = st.columns(3)
+    expense_names = list(expenses.keys())
 
-    with col1:
-        st.write("👮 Watchman Salary")
-        st.metric(label="", value=f"₹{exp['Watchman Salary']}")
+    for i, expense in enumerate(expense_names):
+        with [col1, col2, col3][i % 3]:
+            st.write(f"🔹 {expense}")
+            st.metric(label="", value=f"₹{expenses[expense]}")
 
-    with col2:
-        st.write("💡 Electricity Bill")
-        st.metric(label="", value=f"₹{exp['Electricity Bill']}")
-
-    with col3:
-        st.write("🚰 Water Bill")
-        st.metric(label="", value=f"₹{exp['Water Bill']}")
-
-    total_expense = sum(exp.values())
-    st.success(f"💵 **Total Expense:** ₹{total_expense}")
-
-    st.markdown("---")
-    st.info("Coming soon: Add/Edit expenses directly here!")
+    total_exp = sum(expenses.values())
+    st.success(f"💵 **Total Expense:** ₹{total_exp}")
