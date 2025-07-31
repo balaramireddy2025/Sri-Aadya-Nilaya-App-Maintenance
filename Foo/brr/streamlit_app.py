@@ -21,82 +21,81 @@ owners = {
 
 # ------------------ App State ------------------
 def initialize_state():
-    if "monthly_data" not in st.session_state:
-        # Sample data for 2 months: July and August 2025
-        st.session_state.monthly_data = {
-            "July 2025": {
-                "payments": {flat: 300 for flat in owners},
-                "expenses": {
-                    "Watchman Salary": 4000,
-                    "Electricity Bill": 1500,
-                    "Water Bill": 1000
-                }
-            },
-            "August 2025": {
-                "payments": {flat: 300 for flat in owners},
-                "expenses": {
-                    "Watchman Salary": 4000,
-                    "Electricity Bill": 1600,
-                    "Water Bill": 1200
-                }
-            }
-        }
+    if "payments" not in st.session_state:
+        st.session_state.payments = {}  # { "YYYY-MM": {flat: amount} }
+
+    if "expenses" not in st.session_state:
+        st.session_state.expenses = {}  # { "YYYY-MM": {"label": amount} }
 
 initialize_state()
 
+# ------------------ Helpers ------------------
+def get_current_month():
+    return datetime.now().strftime("%Y-%m")
+
+def ensure_month_data(month):
+    if month not in st.session_state.payments:
+        st.session_state.payments[month] = {flat: 3000 for flat in owners}
+    if month not in st.session_state.expenses:
+        st.session_state.expenses[month] = {
+            "Watchman Salary": 4000,
+            "Electricity Bill": 1500,
+            "Water Bill": 1000
+        }
+
+current_month = get_current_month()
+ensure_month_data(current_month)
+
 # ------------------ Sidebar ------------------
-st.sidebar.title("📌 Menu")
-menu = ["🏠 Monthly Summary", "📋 Flat Collection", "📊 Expense Details"]
-choice = st.sidebar.radio("Navigate", menu)
-
-# ------------------ Select Month ------------------
-months = list(st.session_state.monthly_data.keys())
-selected_month = st.sidebar.selectbox("📅 Select Month", months)
-
-# Get data for selected month
-month_data = st.session_state.monthly_data[selected_month]
-payments = month_data["payments"]
-expenses = month_data["expenses"]
+menu = ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"]
+choice = st.sidebar.radio("Navigation", menu)
+month_selected = st.sidebar.selectbox("Select Month", options=sorted(st.session_state.payments.keys()), index=len(st.session_state.payments) - 1)
 
 # ------------------ Dashboard ------------------
-if choice == "🏠 Monthly Summary":
-    st.markdown(f"### 📊 Summary – {selected_month}")
+if choice == "🏠 Dashboard":
+    st.markdown("## 🏠 Sri Aadya Maintenance Dashboard")
 
-    total_collected = sum(payments.values())
-    total_expenses = sum(expenses.values())
-    balance = total_collected - total_expenses
+    collected = sum(st.session_state.payments[month_selected].values())
+    expenses = sum(st.session_state.expenses[month_selected].values())
+    balance = collected - expenses
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("🧾 Collected", f"₹{total_collected}")
-    col2.metric("💸 Expenses", f"₹{total_expenses}")
-    col3.metric("💰 Balance", f"₹{balance}")
+    col1.metric("💰 Total Collected", f"₹{collected}")
+    col2.metric("💸 Total Expenses", f"₹{expenses}")
+    col3.metric("📦 Balance", f"₹{balance}")
 
     st.markdown("---")
-    st.markdown("✔ Use the sidebar to view flat-wise collection or full expense breakdown.")
+    st.markdown(f"### 🔄 Summary for {month_selected}")
+    st.write("Collection and expense summary for the selected month.")
 
-# ------------------ Flat Collection ------------------
-elif choice == "📋 Flat Collection":
-    st.markdown(f"### 📋 Flat-wise Payment – {selected_month}")
+# ------------------ Flat-wise Payment ------------------
+elif choice == "📋 Flat Status":
+    st.markdown(f"## 📋 Maintenance Collection - {month_selected}")
 
     df = pd.DataFrame({
         "Flat Number": list(owners.keys()),
         "Resident Name": list(owners.values()),
-        "Paid Amount (₹)": list(payments.values())
+        "Paid (₹)": list(st.session_state.payments[month_selected].values())
     })
 
     st.dataframe(df, use_container_width=True)
 
-# ------------------ Expense Details ------------------
-elif choice == "📊 Expense Details":
-    st.markdown(f"### 💼 Expenses – {selected_month}")
+# ------------------ Expenses ------------------
+elif choice == "📊 Expenses":
+    st.markdown(f"## 📊 Monthly Expenses - {month_selected}")
+    month_exp = st.session_state.expenses[month_selected]
 
-    col1, col2, col3 = st.columns(3)
-    expense_names = list(expenses.keys())
+    total = sum(month_exp.values())
+    for label, amount in month_exp.items():
+        st.write(f"**{label}**: ₹{amount}")
 
-    for i, expense in enumerate(expense_names):
-        with [col1, col2, col3][i % 3]:
-            st.write(f"🔹 {expense}")
-            st.metric(label="", value=f"₹{expenses[expense]}")
+    st.success(f"💵 Total Monthly Expense: ₹{total}")
 
-    total_exp = sum(expenses.values())
-    st.success(f"💵 **Total Expense:** ₹{total_exp}")
+    with st.expander("➕ Add or Update Expense"):
+        new_label = st.text_input("Expense Name")
+        new_amount = st.number_input("Amount (₹)", min_value=0, step=100)
+
+        if st.button("Add/Update Expense"):
+            if new_label:
+                month_exp[new_label] = new_amount
+                st.success(f"✅ Expense '{new_label}' updated for {month_selected}")
