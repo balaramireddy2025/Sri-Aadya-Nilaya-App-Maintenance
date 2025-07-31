@@ -27,7 +27,7 @@ owners = {
 # ------------------ App State ------------------
 def initialize_state():
     if "payments" not in st.session_state:
-        st.session_state.payments = {flat: 300 for flat in owners}  # ₹300 per flat
+        st.session_state.payments = {flat: 3000 for flat in owners}  # ₹300 per flat
     if "expenses" not in st.session_state:
         st.session_state.expenses = {
             "Watchman Salary": 4000,
