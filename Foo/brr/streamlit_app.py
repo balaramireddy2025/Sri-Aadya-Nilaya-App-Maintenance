@@ -1,8 +1,12 @@
 import streamlit as st
-from collections import defaultdict
+import pandas as pd
+from datetime import datetime
 
-# Static flat data
-flat_owners = {
+# ------------------ Page Setup ------------------
+st.set_page_config(page_title="Sri Aadya Maintenance", page_icon="🏠", layout="centered")
+
+# ------------------ Flat Owners ------------------
+owners = {
     "Flat G1 #": "Shiva Shanker",
     "Flat G2 #": "Ashish R",
     "Flat 101 #": "Girish Babu C",
@@ -15,72 +19,83 @@ flat_owners = {
     "Flat 402 #": "Suresh"
 }
 
-monthly_maintenance = 3000  # per flat
+# ------------------ App State ------------------
+def initialize_state():
+    if "payments" not in st.session_state:
+        st.session_state.payments = {}  # { "YYYY-MM": {flat: amount} }
 
-# In-memory expense data storage
-if "expenses" not in st.session_state:
-    st.session_state.expenses = defaultdict(list)
+    if "expenses" not in st.session_state:
+        st.session_state.expenses = {}  # { "YYYY-MM": {"label": amount} }
 
-# Utility functions
-def get_total_collected():
-    return len(flat_owners) * monthly_maintenance
+initialize_state()
 
-def get_total_expenses(month):
-    return sum(entry["amount"] for entry in st.session_state.expenses[month])
+# ------------------ Helpers ------------------
+def get_current_month():
+    return datetime.now().strftime("%Y-%m")
 
-def get_balance(month):
-    return get_total_collected() - get_total_expenses(month)
+def ensure_month_data(month):
+    if month not in st.session_state.payments:
+        st.session_state.payments[month] = {flat: 3000 for flat in owners}
+    if month not in st.session_state.expenses:
+        st.session_state.expenses[month] = {
+            "Watchman Salary": 4000,
+            "Electricity Bill": 1500,
+            "Water Bill": 1000
+        }
 
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio(" ", ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"])
+current_month = get_current_month()
+ensure_month_data(current_month)
 
-selected_month = st.sidebar.selectbox("Select Month", [f"{y}-{m:02}" for y in range(2024, 2026) for m in range(1, 13)])
+# ------------------ Sidebar ------------------
+menu = ["🏠 Dashboard", "📋 Flat Status", "📊 Expenses"]
+choice = st.sidebar.radio("Navigation", menu)
+month_selected = st.sidebar.selectbox("Select Month", options=sorted(st.session_state.payments.keys()), index=len(st.session_state.payments) - 1)
 
-# Dashboard
-if page == "🏠 Dashboard":
-    st.title("🏠 Sri Aadya Maintenance Dashboard")
+# ------------------ Dashboard ------------------
+if choice == "🏠 Dashboard":
+    st.markdown("## 🏠 Sri Aadya Maintenance Dashboard")
 
-    total_collected = get_total_collected()
-    total_expenses = get_total_expenses(selected_month)
-    balance = get_balance(selected_month)
+    collected = sum(st.session_state.payments[month_selected].values())
+    expenses = sum(st.session_state.expenses[month_selected].values())
+    balance = collected - expenses
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("💰 Total Collected", f"₹{total_collected}")
-    col2.metric("🪙 Total Expenses", f"₹{total_expenses}")
+    col1.metric("💰 Total Collected", f"₹{collected}")
+    col2.metric("💸 Total Expenses", f"₹{expenses}")
     col3.metric("📦 Balance", f"₹{balance}")
 
-    st.divider()
-    st.subheader(f"🔄 Summary for {selected_month}")
+    st.markdown("---")
+    st.markdown(f"### 🔄 Summary for {month_selected}")
     st.write("Collection and expense summary for the selected month.")
 
-# Flat Status Page
-elif page == "📋 Flat Status":
-    st.title("📋 Flat Wise Monthly Status")
-    st.write(f"**Monthly Collection: ₹{monthly_maintenance} per flat**")
+# ------------------ Flat-wise Payment ------------------
+elif choice == "📋 Flat Status":
+    st.markdown(f"## 📋 Maintenance Collection - {month_selected}")
 
-    st.markdown("### Collection Status")
-    for flat, owner in flat_owners.items():
-        st.success(f"{flat} - {owner}: ₹{monthly_maintenance} paid for {selected_month}")
+    df = pd.DataFrame({
+        "Flat Number": list(owners.keys()),
+        "Resident Name": list(owners.values()),
+        "Paid (₹)": list(st.session_state.payments[month_selected].values())
+    })
 
-# Expenses Page
-elif page == "📊 Expenses":
-    st.title("📊 Add Monthly Expenses")
-    st.write(f"Add expenses for **{selected_month}**")
+    st.dataframe(df, use_container_width=True)
 
-    with st.form("expense_form"):
-        description = st.text_input("Expense Description")
-        amount = st.number_input("Amount (₹)", min_value=0, step=100)
-        submitted = st.form_submit_button("Add Expense")
-        if submitted and description and amount > 0:
-            st.session_state.expenses[selected_month].append({"description": description, "amount": amount})
-            st.success("Expense added!")
+# ------------------ Expenses ------------------
+elif choice == "📊 Expenses":
+    st.markdown(f"## 📊 Monthly Expenses - {month_selected}")
+    month_exp = st.session_state.expenses[month_selected]
 
-    st.divider()
-    st.subheader(f"📄 Expense List for {selected_month}")
-    expense_list = st.session_state.expenses[selected_month]
-    if expense_list:
-        for idx, entry in enumerate(expense_list, start=1):
-            st.write(f"**{idx}. {entry['description']}** — ₹{entry['amount']}")
-    else:
-        st.info("No expenses added yet.")
+    total = sum(month_exp.values())
+    for label, amount in month_exp.items():
+        st.write(f"**{label}**: ₹{amount}")
+
+    st.success(f"💵 Total Monthly Expense: ₹{total}")
+
+    with st.expander("➕ Add or Update Expense"):
+        new_label = st.text_input("Expense Name")
+        new_amount = st.number_input("Amount (₹)", min_value=0, step=100)
+
+        if st.button("Add/Update Expense"):
+            if new_label:
+                month_exp[new_label] = new_amount
+                st.success(f"✅ Expense '{new_label}' updated for {month_selected}")
